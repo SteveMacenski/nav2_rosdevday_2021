@@ -2,13 +2,15 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>nav2_rosdevday_2021</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="stevenmacenski@gmail.com">steve</maintainer>
-  <license>TODO: License declaration</license>
+  <version>1.0.0</version>
+  <description>Demos for ROS Developers Day 2021</description>
+  <maintainer email="stevenmacenski@gmail.com">steve macenski</maintainer>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>nav2_bringup</depend>
+  <depend>aws_robomaker_small_warehouse_world</depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
