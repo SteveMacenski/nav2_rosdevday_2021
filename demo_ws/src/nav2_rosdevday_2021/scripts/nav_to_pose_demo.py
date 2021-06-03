@@ -13,29 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import time
 
-from action_msgs.msg import GoalStatus
-from geometry_msgs.msg import PoseStamped, Pose
-import rclpy
+from geometry_msgs.msg import PoseStamped
 from rclpy.duration import Duration
+import rclpy
 
-from robot_navigator import BasicNavigator
+from robot_navigator import BasicNavigator, NavigationResult
 
 '''
 Basic navigation demo to go to pose.
 '''
-def main(argv=sys.argv[1:]):
+def main():
     rclpy.init()
+
     navigator = BasicNavigator()
 
     # Set our demo's initial pose
-    initial_pose = Pose()
-    initial_pose.position.x = 3.45
-    initial_pose.position.y = 2.15
-    initial_pose.orientation.z = 1.0
-    initial_pose.orientation.w = 0.0
+    initial_pose = PoseStamped()
+    initial_pose.header.frame_id = 'map'
+    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+    initial_pose.pose.position.x = 3.45
+    initial_pose.pose.position.y = 2.15
+    initial_pose.pose.orientation.z = 1.0
+    initial_pose.pose.orientation.w = 0.0
     navigator.setInitialPose(initial_pose)
 
     # Wait for navigation to fully activate
@@ -70,13 +71,18 @@ def main(argv=sys.argv[1:]):
             if Duration.from_msg(feedback.navigation_time) > Duration(seconds=600.0):
                 navigator.cancelNav()
 
+            # Some navigation request change to demo preemption
+            if Duration.from_msg(feedback.navigation_time) > Duration(seconds=18.0):
+                goal_pose.pose.position.x = -3.0
+                navigator.goToPose(goal_pose)
+
     # Do something depending on the return code
     result = navigator.getResult()
-    if result == GoalStatus.STATUS_SUCCEEDED:
+    if result == NavigationResult.SUCCEEDED:
         print('Goal succeeded!')
-    elif result == GoalStatus.STATUS_CANCELED:
+    elif result == NavigationResult.CANCELED:
         print('Goal was canceled!')
-    elif result == GoalStatus.STATUS_ABORTED:
+    elif result == NavigationResult.FAILED:
         print('Goal failed!')
     else:
         print('Goal has an invalid return status!')

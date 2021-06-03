@@ -214,7 +214,7 @@
         <include>
             <uri>model://aws_robomaker_warehouse_PalletJackB_01</uri>
         </include>
-        <pose frame=''>-0.276098 -9.481944 0.023266 0 0 0</pose>
+        <pose frame=''>-0.25 -7.481944 0.023266 0 0 3.14159</pose>
   </model>
 
       

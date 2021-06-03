@@ -14,9 +14,10 @@
 # limitations under the License.
 
 import time
+from enum import Enum
 
 from action_msgs.msg import GoalStatus
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateThroughPoses, NavigateToPose
@@ -28,11 +29,23 @@ from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
 
+#TODO
+# - lifecycle up and down
+# - clear costmap
+# - get path
+# - change map
+# - wp follow
+
+class NavigationResult(Enum):
+    UKNNOWN = 0
+    SUCCEEDED = 1
+    CANCELED = 2
+    FAILED = 3 
 
 class BasicNavigator(Node):
     def __init__(self):
         super().__init__(node_name='basic_navigator')
-        self.initial_pose = Pose()
+        self.initial_pose = PoseStamped()
         self.goal_handle = None
         self.result_future = None
         self.feedback = None
@@ -136,7 +149,14 @@ class BasicNavigator(Node):
         return self.feedback
 
     def getResult(self):
-        return self.status
+        if self.status == GoalStatus.STATUS_SUCCEEDED:
+            return NavigationResult.SUCCEEDED
+        elif self.status == GoalStatus.STATUS_ABORTED:
+            return NavigationResult.FAILED
+        elif self.status == GoalStatus.STATUS_CANCELED:
+            return NavigationResult.CANCELED
+        else:
+            return NavigationResult.UNKNOWN
 
     def waitUntilNav2Active(self):
         self._waitForNodeToActivate('amcl')
@@ -183,9 +203,9 @@ class BasicNavigator(Node):
 
     def _setInitialPose(self):
         msg = PoseWithCovarianceStamped()
-        msg.pose.pose = self.initial_pose
-        msg.header.frame_id = 'map'
-        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.pose.pose = self.initial_pose.pose
+        msg.header.frame_id = self.initial_pose.header.frame_id
+        msg.header.stamp = self.initial_pose.header.stamp
         self.info('Publishing Initial Pose')
         self.initial_pose_pub.publish(msg)
         return
