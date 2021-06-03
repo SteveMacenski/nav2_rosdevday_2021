@@ -20,7 +20,7 @@ from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from lifecycle_msgs.srv import GetState
-from nav2_msgs.action import NavigateThroughPoses, NavigateToPose
+from nav2_msgs.action import NavigateThroughPoses, NavigateToPose, FollowWaypoints
 
 import rclpy
 
@@ -34,7 +34,6 @@ from rclpy.qos import QoSProfile
 # - clear costmap
 # - get path
 # - change map
-# - wp follow
 
 class NavigationResult(Enum):
     UKNNOWN = 0
@@ -62,6 +61,7 @@ class BasicNavigator(Node):
                                                      NavigateThroughPoses,
                                                      'navigate_through_poses')
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.follow_waypoints_client = ActionClient(self, FollowWaypoints, 'follow_waypoints')
         self.model_pose_sub = self.create_subscription(PoseWithCovarianceStamped,
                                                        'amcl_pose',
                                                        self._amclPoseCallback,
@@ -76,10 +76,10 @@ class BasicNavigator(Node):
         self._setInitialPose()
 
     def goThroughPoses(self, poses):
-        # Sends a `NavToPose` action request and waits for completion
-        self.debug("Waiting for 'NavigateToPose' action server")
+        # Sends a `NavThroughPoses` action request
+        self.debug("Waiting for 'NavigateThroughPoses' action server")
         while not self.nav_through_poses_client.wait_for_server(timeout_sec=1.0):
-            self.info("'NavigateToPose' action server not available, waiting...")
+            self.info("'NavigateThroughPoses' action server not available, waiting...")
 
         goal_msg = NavigateThroughPoses.Goal()
         goal_msg.poses = poses
@@ -98,7 +98,7 @@ class BasicNavigator(Node):
         return True
 
     def goToPose(self, pose):
-        # Sends a `NavToPose` action request and waits for completion
+        # Sends a `NavToPose` action request
         self.debug("Waiting for 'NavigateToPose' action server")
         while not self.nav_to_pose_client.wait_for_server(timeout_sec=1.0):
             self.info("'NavigateToPose' action server not available, waiting...")
@@ -116,6 +116,28 @@ class BasicNavigator(Node):
         if not self.goal_handle.accepted:
             self.error('Goal to ' + str(pose.pose.position.x) + ' ' +
                            str(pose.pose.position.y) + ' was rejected!')
+            return False
+
+        self.result_future = self.goal_handle.get_result_async()
+        return True
+
+    def followWaypoints(self, poses):
+        # Sends a `FollowWaypoints` action request
+        self.debug("Waiting for 'FollowWaypoints' action server")
+        while not self.follow_waypoints_client.wait_for_server(timeout_sec=1.0):
+            self.info("'FollowWaypoints' action server not available, waiting...")
+
+        goal_msg = FollowWaypoints.Goal()
+        goal_msg.poses = poses
+
+        self.info('Following ' + str(len(goal_msg.poses)) + ' goals.' + '...')
+        send_goal_future = self.follow_waypoints_client.send_goal_async(goal_msg,
+                                                                        self._feedbackCallback)
+        rclpy.spin_until_future_complete(self, send_goal_future)
+        self.goal_handle = send_goal_future.result()
+
+        if not self.goal_handle.accepted:
+            self.error('Following ' + str(len(poses)) + ' waypoints request was rejected!')
             return False
 
         self.result_future = self.goal_handle.get_result_async()
