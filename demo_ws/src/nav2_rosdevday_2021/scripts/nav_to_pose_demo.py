@@ -16,19 +16,15 @@
 import sys
 import time
 
+from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped, Pose
 import rclpy
+from rclpy.duration import Duration
 
 from robot_navigator import BasicNavigator
 
 '''
 Basic navigation demo to go to pose.
-This will block until the navigation task is complete.
-To cancel navigation on-going, you need to process in a separate thread.
-
-This is obviously a very simplistic demo, in real use, you wouldn't
-block navigation so you could cancel, preempt, receive feedback,
-do other things here, etc to make the best use of the ROS actions.
 '''
 def main(argv=sys.argv[1:]):
     rclpy.init()
@@ -54,20 +50,37 @@ def main(argv=sys.argv[1:]):
     goal_pose.pose.orientation.w = 1.0
     navigator.goToPose(goal_pose)
 
-    while not navigator.checkStatus():
+    i = 0
+    while not navigator.isNavComplete():
+        ################################################
+        #
+        # Implement some code here for your application!
+        #
+        ################################################
+
+        # Do something with the feedback
+        i = i + 1
         feedback = navigator.getFeedback()
-        print()
-        if (t > 10):
-            navigator.cancelNav()
+        if feedback and i % 5 == 0:
+            print('Estimated time of arrival: ' + '{0:.0f}'.format(
+                  Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9)
+                  + ' seconds.')
 
-    ################################################
-    #
-    # Implement some code here for your application!
-    #
-    ################################################
+            # Some navigation timeout to demo cancellation
+            if Duration.from_msg(feedback.navigation_time) > Duration(seconds=600.0):
+                navigator.cancelNav()
 
-    # cancel just to make sure nothing is still processing
-    navigator.cancelNav()
+    # Do something depending on the return code
+    result = navigator.getResult()
+    if result == GoalStatus.STATUS_SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == GoalStatus.STATUS_CANCELED:
+        print('Goal was canceled!')
+    elif result == GoalStatus.STATUS_ABORTED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
+
     exit(0)
 
 

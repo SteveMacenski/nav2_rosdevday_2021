@@ -35,6 +35,8 @@ class BasicNavigator(Node):
         self.initial_pose = Pose()
         self.goal_handle = None
         self.result_future = None
+        self.feedback = None
+        self.status = None
 
         amcl_pose_qos = QoSProfile(
           durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
@@ -70,7 +72,8 @@ class BasicNavigator(Node):
         goal_msg.poses = poses
 
         self.info('Navigating with ' + str(len(poses)) + ' goals.' + '...')
-        send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg)
+        send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg,
+                                                                         self._feedbackCallback)
         rclpy.spin_until_future_complete(self, send_goal_future)
         self.goal_handle = send_goal_future.result()
 
@@ -79,16 +82,6 @@ class BasicNavigator(Node):
             return False
 
         self.result_future = self.goal_handle.get_result_async()
-        self.goal_handle = None
-        rclpy.spin_until_future_complete(self, self.result_future)
-        status = self.result_future.result().status
-        self.result_future = None
-        if status != GoalStatus.STATUS_SUCCEEDED:
-            self.info('Goal with ' + str(len(poses)) +
-                          ' poses failed with status code: {0}'.format(status))
-            return False
-
-        self.info('Goal with ' + str(len(poses)) + ' poses succeeded!')
         return True
 
     def goToPose(self, pose):
@@ -102,7 +95,8 @@ class BasicNavigator(Node):
 
         self.info('Navigating to goal: ' + str(pose.pose.position.x) + ' ' +
                       str(pose.pose.position.y) + '...')
-        send_goal_future = self.nav_to_pose_client.send_goal_async(goal_msg)
+        send_goal_future = self.nav_to_pose_client.send_goal_async(goal_msg,
+                                                                   self._feedbackCallback)
         rclpy.spin_until_future_complete(self, send_goal_future)
         self.goal_handle = send_goal_future.result()
 
@@ -112,35 +106,37 @@ class BasicNavigator(Node):
             return False
 
         self.result_future = self.goal_handle.get_result_async()
-        self.goal_handle = None
-        rclpy.spin_until_future_complete(self, self.result_future)
-        status = self.result_future.result().status
-        self.result_future = None
-        if status != GoalStatus.STATUS_SUCCEEDED:
-            self.info('Goal to ' + str(pose.pose.position.x) + ' ' +
-                          str(pose.pose.position.y) +
-                          'failed with status code: {0}'.format(status))
-            return False
-
-        self.info('Goal to ' + str(pose.pose.position.x) + ' ' +
-                      str(pose.pose.position.y) + ' succeeded!')
         return True
 
     def cancelNav(self):
-        if self.goal_handle:
-            self.goal_handle.cancel_goal()
+        self.info('Canceling current goal.')
         if self.result_future:
-            self.result_future.cancel_goal()
+            future = self.goal_handle.cancel_goal_async()
+            rclpy.spin_until_future_complete(self, future)
         return
 
-    def checkStatus(self):
-        # TODO find out if done
-        # return true/false on that
-        return
+    def isNavComplete(self):
+        if not self.result_future:
+            # task was cancelled or completed
+            return True
+        rclpy.spin_until_future_complete(self, self.result_future, timeout_sec=0.10)
+        if self.result_future.result():
+            self.status = self.result_future.result().status
+            if self.status != GoalStatus.STATUS_SUCCEEDED:
+                self.info('Goal with failed with status code: {0}'.format(self.status))
+                return True
+        else:
+            # Timed out, still processing, not complete yet
+            return False
+
+        self.info('Goal succeeded!')
+        return True
 
     def getFeedback(self):
-        #TODO get feedback message for interested parties, if possible.
-        return
+        return self.feedback
+
+    def getResult(self):
+        return self.status
 
     def waitUntilNav2Active(self):
         self._waitForNodeToActivate('amcl')
@@ -179,6 +175,10 @@ class BasicNavigator(Node):
 
     def _amclPoseCallback(self, msg):
         self.initial_pose_received = True
+        return
+
+    def _feedbackCallback(self, msg):
+        self.feedback = msg.feedback
         return
 
     def _setInitialPose(self):

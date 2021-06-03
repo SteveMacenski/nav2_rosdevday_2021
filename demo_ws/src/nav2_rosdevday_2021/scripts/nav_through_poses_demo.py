@@ -16,19 +16,15 @@
 import sys
 import time
 
+from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped, Pose
 import rclpy
+from rclpy.duration import Duration
 
 from robot_navigator import BasicNavigator
 
 '''
 Basic navigation demo to go to poses.
-This will block until the navigation task is complete.
-To cancel navigation on-going, you need to process in a separate thread.
-
-This is obviously a very simplistic demo, in real use, you wouldn't
-block navigation so you could cancel, preempt, receive feedback,
-do other things here, etc to make the best use of the ROS actions.
 '''
 def main(argv=sys.argv[1:]):
     rclpy.init()
@@ -55,7 +51,7 @@ def main(argv=sys.argv[1:]):
 
     goal_poses = [goal_pose]
     # goal_pose.pose.position.x = -2.0
-    # goal_pose.pose.position.y = -0.5
+    # goal_pose.pose.position.y = -0.
     # goal_pose.pose.orientation.w = 1.0
     # goal_poses.append(goal_pose)
     # goal_pose.pose.position.x = -2.0
@@ -68,14 +64,37 @@ def main(argv=sys.argv[1:]):
     # goal_poses.append(goal_pose)
     navigator.goThroughPoses(goal_poses)
 
-    ################################################
-    #
-    # Implement some code here for your application!
-    #
-    ################################################
+    i = 0
+    while not navigator.isNavComplete():
+        ################################################
+        #
+        # Implement some code here for your application!
+        #
+        ################################################
 
-    # cancel just to make sure nothing is still processing
-    navigator.cancelNav()
+        # Do something with the feedback
+        i = i + 1
+        feedback = navigator.getFeedback()
+        if feedback and i % 5 == 0:
+            print('Estimated time of arrival: ' + '{0:.0f}'.format(
+                  Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9)
+                  + ' seconds.')
+
+            # Some navigation timeout to demo cancellation
+            if Duration.from_msg(feedback.navigation_time) > Duration(seconds=600.0):
+                navigator.cancelNav()
+
+    # Do something depending on the return code
+    result = navigator.getResult()
+    if result == GoalStatus.STATUS_SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == GoalStatus.STATUS_CANCELED:
+        print('Goal was canceled!')
+    elif result == GoalStatus.STATUS_ABORTED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
+
     exit(0)
 
 
