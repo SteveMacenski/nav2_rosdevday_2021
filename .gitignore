@@ -2,3 +2,5 @@
 demo_ws/install
 demo_ws/build
 demo_ws/log
+__pycache__
+demo_ws/src/nav2_rosdevday_2021/scripts/__pycache__
