@@ -25,16 +25,16 @@ from robot_navigator import BasicNavigator, NavigationResult
 '''
 Basic security route patrol demo. In this demonstration, the expectation
 is that there are security cameras mounted on the robots recording or being
-watched live by security staff.
+watched live by security staff (think Knightscope Robotics).
 '''
 def main():
     rclpy.init()
 
     navigator = BasicNavigator()
 
-    # Inspection route, probably read in from a file for a real application
+    # Security route, probably read in from a file for a real application
     # from either a map or drive and repeat.
-    inspection_route = [
+    security_route = [
         [1.792, 2.144],
         [1.792, -5.44],
         [1.792, -9.427],
@@ -64,7 +64,7 @@ def main():
         goal_pose.header.frame_id = 'map'
         goal_pose.header.stamp = navigator.get_clock().now().to_msg()
         goal_pose.pose.orientation.w = 1.0
-        for pt in inspection_route:
+        for pt in security_route:
             goal_pose.pose.position.x = pt[0]
             goal_pose.pose.position.y = pt[1]
             goal_poses.append(deepcopy(goal_pose))
@@ -87,7 +87,7 @@ def main():
                     navigator.cancelNav()
 
         # If at end of route, reverse the route to restart
-        inspection_route.reverse()
+        security_route.reverse()
 
         result = navigator.getResult()
         if result == NavigationResult.SUCCEEDED:
