@@ -71,7 +71,7 @@ class BasicNavigator(Node):
         goal_msg = NavigateThroughPoses.Goal()
         goal_msg.poses = poses
 
-        self.info('Navigating with ' + str(len(poses)) + ' goals.' + '...')
+        self.info('Navigating with ' + str(len(goal_msg.poses)) + ' goals.' + '...')
         send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg,
                                                                          self._feedbackCallback)
         rclpy.spin_until_future_complete(self, send_goal_future)
