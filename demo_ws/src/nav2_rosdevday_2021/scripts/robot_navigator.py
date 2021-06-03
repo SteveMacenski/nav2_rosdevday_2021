@@ -158,13 +158,13 @@ class BasicNavigator(Node):
         if self.result_future.result():
             self.status = self.result_future.result().status
             if self.status != GoalStatus.STATUS_SUCCEEDED:
-                self.info('Goal with failed with status code: {0}'.format(self.status))
+                self.debug('Goal with failed with status code: {0}'.format(self.status))
                 return True
         else:
             # Timed out, still processing, not complete yet
             return False
 
-        self.info('Goal succeeded!')
+        self.debug('Goal succeeded!')
         return True
 
     def getFeedback(self):
@@ -212,14 +212,16 @@ class BasicNavigator(Node):
             self.info('Setting initial pose')
             self._setInitialPose()
             self.info('Waiting for amcl_pose to be received')
-            rclpy.spin_once(self, timeout_sec=1)
+            rclpy.spin_once(self, timeout_sec=1.0)
         return
 
     def _amclPoseCallback(self, msg):
+        self.debug('Received amcl pose')
         self.initial_pose_received = True
         return
 
     def _feedbackCallback(self, msg):
+        self.debug('Received action feedback message')
         self.feedback = msg.feedback
         return
 
