@@ -78,8 +78,9 @@ def main():
     print('Received request for item picking at ' + request_item_location + '.')
     navigator.goToPose(goal_pose)
 
-    # Do something during our route (e.x. AI to analyze stock information or upload to the cloud)
-    # Simply the current waypoint ID for the demonstation
+    # Do something during our route
+    # (e.x. queue up future tasks or detect person for fine-tuned positioning)
+    # Simply print information for workers on the robot's ETA for the demonstation
     i = 0
     while not navigator.isNavComplete():
         i = i + 1
