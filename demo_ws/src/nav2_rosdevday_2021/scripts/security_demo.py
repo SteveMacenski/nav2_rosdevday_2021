@@ -25,7 +25,7 @@ from robot_navigator import BasicNavigator, NavigationResult
 '''
 Basic security route patrol demo. In this demonstration, the expectation
 is that there are security cameras mounted on the robots recording or being
-watched live by security staff (think Knightscope Robotics).
+watched live by security staff.
 '''
 def main():
     rclpy.init()

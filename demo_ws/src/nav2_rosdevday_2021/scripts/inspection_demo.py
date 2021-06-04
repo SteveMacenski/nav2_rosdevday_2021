@@ -25,7 +25,7 @@ from robot_navigator import BasicNavigator, NavigationResult
 '''
 Basic stock inspection demo. In this demonstration, the expectation
 is that there are cameras or RFID sensors mounted on the robots
-collecting information about stock quantity and location (think Simbe Robotics).
+collecting information about stock quantity and location.
 '''
 def main():
     rclpy.init()

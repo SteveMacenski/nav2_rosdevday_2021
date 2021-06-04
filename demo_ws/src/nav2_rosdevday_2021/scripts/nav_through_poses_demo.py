@@ -42,7 +42,7 @@ def main():
     # Activate navigation, if not autostarted. This should be called after setInitialPose()
     # or this will initialize at the origin of the map and update the costmap with bogus readings.
     # If autostart, you should `waitUntilNav2Active()` instead.
-    # navigator.LifecycleStartup()
+    # navigator.lifecycleStartup()
 
     # Wait for navigation to fully activate, since autostarting nav2
     navigator.waitUntilNav2Active()
@@ -50,8 +50,10 @@ def main():
     # If desired, you can change or load the map as well
     # navigator.changeMap('/path/to/map.yaml')
 
-    # You may use the navigator to clear costmaps
+    # You may use the navigator to clear or obtain costmaps
     # navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
+    # global_costmap = navigator.getGlobalCostmap()
+    # local_costmap = navigator.getLocalCostmap()
 
     # set our demo's goal poses
     goal_poses = []
@@ -129,7 +131,7 @@ def main():
     else:
         print('Goal has an invalid return status!')
 
-    navigator.LifecycleShutdown()
+    navigator.lifecycleShutdown()
 
     exit(0)
 

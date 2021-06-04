@@ -39,7 +39,7 @@ shipping_destinations = {
 '''
 Basic item picking demo. In this demonstration, the expectation
 is that there is a person at the item shelf to put the item on the robot
-and at the pallet jack to remove it (think Locus Robotics)
+and at the pallet jack to remove it
 (probably with some kind of button for 'got item, robot go do next task').
 '''
 def main():

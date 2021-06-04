@@ -21,7 +21,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateThroughPoses, NavigateToPose, FollowWaypoints, ComputePathToPose, ComputePathThroughPoses
-from nav2_msgs.srv import LoadMap, ClearEntireCostmap, ManageLifecycleNodes
+from nav2_msgs.srv import LoadMap, ClearEntireCostmap, ManageLifecycleNodes, GetCostmap
 
 import rclpy
 
@@ -75,6 +75,8 @@ class BasicNavigator(Node):
             ClearEntireCostmap, '/global_costmap/clear_entirely_global_costmap')
         self.clear_costmap_local_srv = self.create_client(
             ClearEntireCostmap, '/local_costmap/clear_entirely_local_costmap')
+        self.get_costmap_global_srv = self.create_client(GetCostmap, '/global_costmap/get_costmap')
+        self.get_costmap_local_srv = self.create_client(GetCostmap, '/local_costmap/get_costmap')
 
     def setInitialPose(self, initial_pose):
         self.initial_pose_received = False
@@ -284,7 +286,23 @@ class BasicNavigator(Node):
         rclpy.spin_until_future_complete(self, future)
         return
 
-    def LifecycleStartup(self):
+    def getGlobalCostmap(self):
+        while not self.get_costmap_global_srv.wait_for_service(timeout_sec=1.0):
+            self.info('Get global costmaps service not available, waiting...')
+        req = GetCostmap.Request()
+        future = self.get_costmap_global_srv.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result().map
+
+    def getLocalCostmap(self):
+        while not self.get_costmap_local_srv.wait_for_service(timeout_sec=1.0):
+            self.info('Get local costmaps service not available, waiting...')
+        req = GetCostmap.Request()
+        future = self.get_costmap_local_srv.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result().map
+
+    def lifecycleStartup(self):
         self.info('Starting up lifecycle nodes based on lifecycle_manager.')
         srvs = self.get_service_names_and_types()
         for srv in srvs:
@@ -306,9 +324,10 @@ class BasicNavigator(Node):
                         self._waitForInitialPose()
                     else:
                         break
+        self.info('Nav2 is ready for use!')
         return
 
-    def LifecycleShutdown(self):
+    def lifecycleShutdown(self):
         self.info('Shutting down lifecycle nodes based on lifecycle_manager.')
         srvs = self.get_service_names_and_types()
         for srv in srvs:
