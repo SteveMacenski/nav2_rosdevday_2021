@@ -68,15 +68,15 @@ def main():
     # Wait for navigation to fully activate
     navigator.waitUntilNav2Active()
 
-    goal_pose = PoseStamped()
-    goal_pose.header.frame_id = 'map'
-    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose.pose.position.x = shelf_positions[request_item_location][0]
-    goal_pose.pose.position.y = shelf_positions[request_item_location][1]
-    goal_pose.pose.orientation.z = 1.0
-    goal_pose.pose.orientation.w = 0.0
+    shelf_item_pose = PoseStamped()
+    shelf_item_pose.header.frame_id = 'map'
+    shelf_item_pose.header.stamp = navigator.get_clock().now().to_msg()
+    shelf_item_pose.pose.position.x = shelf_positions[request_item_location][0]
+    shelf_item_pose.pose.position.y = shelf_positions[request_item_location][1]
+    shelf_item_pose.pose.orientation.z = 1.0
+    shelf_item_pose.pose.orientation.w = 0.0
     print('Received request for item picking at ' + request_item_location + '.')
-    navigator.goToPose(goal_pose)
+    navigator.goToPose(shelf_item_pose)
 
     # Do something during our route
     # (e.x. queue up future tasks or detect person for fine-tuned positioning)
@@ -95,14 +95,14 @@ def main():
     if result == NavigationResult.SUCCEEDED:
         print('Got product from ' + request_item_location +
               '! Bringing product to shipping destination (' + request_destination + ')...')
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-        goal_pose.pose.position.x = shipping_destinations[request_destination][0]
-        goal_pose.pose.position.y = shipping_destinations[request_destination][1]
-        goal_pose.pose.orientation.z = 1.0
-        goal_pose.pose.orientation.w = 0.0
-        navigator.goToPose(goal_pose)
+        shipping_destination = PoseStamped()
+        shipping_destination.header.frame_id = 'map'
+        shipping_destination.header.stamp = navigator.get_clock().now().to_msg()
+        shipping_destination.pose.position.x = shipping_destinations[request_destination][0]
+        shipping_destination.pose.position.y = shipping_destinations[request_destination][1]
+        shipping_destination.pose.orientation.z = 1.0
+        shipping_destination.pose.orientation.w = 0.0
+        navigator.goToPose(shipping_destination)
 
     elif result == NavigationResult.CANCELED:
         print('Task at ' + request_item_location + ' was canceled. Returning to staging point...')

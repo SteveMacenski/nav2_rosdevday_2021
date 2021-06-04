@@ -58,18 +58,18 @@ def main():
     navigator.waitUntilNav2Active()
 
     # Send our route
-    goal_poses = []
-    goal_pose = PoseStamped()
-    goal_pose.header.frame_id = 'map'
-    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose.pose.orientation.z = 1.0
-    goal_pose.pose.orientation.w = 0.0
+    inspection_points = []
+    inspection_pose = PoseStamped()
+    inspection_pose.header.frame_id = 'map'
+    inspection_pose.header.stamp = navigator.get_clock().now().to_msg()
+    inspection_pose.pose.orientation.z = 1.0
+    inspection_pose.pose.orientation.w = 0.0
     for pt in inspection_route:
-        goal_pose.pose.position.x = pt[0]
-        goal_pose.pose.position.y = pt[1]
-        goal_poses.append(deepcopy(goal_pose))
+        inspection_pose.pose.position.x = pt[0]
+        inspection_pose.pose.position.y = pt[1]
+        inspection_points.append(deepcopy(inspection_pose))
     nav_start = navigator.get_clock().now()
-    navigator.followWaypoints(goal_poses)
+    navigator.followWaypoints(inspection_points)
 
     # Do something during our route (e.x. AI to analyze stock information or upload to the cloud)
     # Simply the current waypoint ID for the demonstation
@@ -79,7 +79,7 @@ def main():
         feedback = navigator.getFeedback()
         if feedback and i % 5 == 0:
             print('Executing current waypoint: ' +
-                  str(feedback.current_waypoint + 1) + '/' + str(len(goal_poses)))
+                  str(feedback.current_waypoint + 1) + '/' + str(len(inspection_points)))
 
     result = navigator.getResult()
     if result == NavigationResult.SUCCEEDED:

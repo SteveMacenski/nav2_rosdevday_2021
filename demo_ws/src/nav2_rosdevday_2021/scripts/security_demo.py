@@ -59,16 +59,16 @@ def main():
     # Do security route until dead
     while rclpy.ok():
         # Send our route
-        goal_poses = []
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-        goal_pose.pose.orientation.w = 1.0
+        route_poses = []
+        pose = PoseStamped()
+        pose.header.frame_id = 'map'
+        pose.header.stamp = navigator.get_clock().now().to_msg()
+        pose.pose.orientation.w = 1.0
         for pt in security_route:
-            goal_pose.pose.position.x = pt[0]
-            goal_pose.pose.position.y = pt[1]
-            goal_poses.append(deepcopy(goal_pose))
-        navigator.goThroughPoses(goal_poses)
+            pose.pose.position.x = pt[0]
+            pose.pose.position.y = pt[1]
+            route_poses.append(deepcopy(pose))
+        navigator.goThroughPoses(route_poses)
 
         # Do something during our route (e.x. AI detection on camera images for anomalies)
         # Simply print ETA for the demonstation
