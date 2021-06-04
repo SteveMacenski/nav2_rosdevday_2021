@@ -21,7 +21,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateThroughPoses, NavigateToPose, FollowWaypoints, ComputePathToPose, ComputePathThroughPoses
-from nav2_msgs.srv import LoadMap, ClearEntireCostmap
+from nav2_msgs.srv import LoadMap, ClearEntireCostmap, ManageLifecycleNodes
 
 import rclpy
 
@@ -30,8 +30,6 @@ from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
 
-#TODO
-# - lifecycle up and down
 
 class NavigationResult(Enum):
     UKNNOWN = 0
@@ -39,10 +37,12 @@ class NavigationResult(Enum):
     CANCELED = 2
     FAILED = 3 
 
+
 class BasicNavigator(Node):
     def __init__(self):
         super().__init__(node_name='basic_navigator')
         self.initial_pose = PoseStamped()
+        self.initial_pose.header.frame_id = 'map'
         self.goal_handle = None
         self.result_future = None
         self.feedback = None
@@ -61,11 +61,12 @@ class BasicNavigator(Node):
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.follow_waypoints_client = ActionClient(self, FollowWaypoints, 'follow_waypoints')
         self.compute_path_to_pose_client = ActionClient(self, ComputePathToPose, 'compute_path_to_pose')
-        self.compute_path_through_poses_client = ActionClient(self, ComputePathThroughPoses, 'compute_path_through_poses')
-        self.model_pose_sub = self.create_subscription(PoseWithCovarianceStamped,
-                                                       'amcl_pose',
-                                                       self._amclPoseCallback,
-                                                       amcl_pose_qos)
+        self.compute_path_through_poses_client = ActionClient(self, ComputePathThroughPoses,
+                                                              'compute_path_through_poses')
+        self.localization_pose_sub = self.create_subscription(PoseWithCovarianceStamped,
+                                                              'amcl_pose',
+                                                              self._amclPoseCallback,
+                                                              amcl_pose_qos)
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
                                                       'initialpose',
                                                       10)
@@ -281,6 +282,47 @@ class BasicNavigator(Node):
         req = ClearEntireCostmap.Request()
         future = self.clear_costmap_global_srv.call_async(req)
         rclpy.spin_until_future_complete(self, future)
+        return
+
+    def LifecycleStartup(self):
+        self.info('Starting up lifecycle nodes based on lifecycle_manager.')
+        srvs = self.get_service_names_and_types()
+        for srv in srvs:
+            if srv[1][0] == 'nav2_msgs/srv/ManageLifecycleNodes':
+                srv_name = srv[0]
+                self.info('Starting up ' + srv_name)
+                mgr_client = self.create_client(ManageLifecycleNodes, srv_name)
+                while not mgr_client.wait_for_service(timeout_sec=1.0):
+                    self.info(srv_name + ' service not available, waiting...')
+                req = ManageLifecycleNodes.Request()
+                req.command = ManageLifecycleNodes.Request().STARTUP
+                future = mgr_client.call_async(req)
+
+                # starting up requires a full map->odom->base_link TF tree
+                # so if we're not successful, try forwarding the initial pose
+                while True:
+                    rclpy.spin_until_future_complete(self, future, timeout_sec=0.10)
+                    if not future:
+                        self._waitForInitialPose()
+                    else:
+                        break
+        return
+
+    def LifecycleShutdown(self):
+        self.info('Shutting down lifecycle nodes based on lifecycle_manager.')
+        srvs = self.get_service_names_and_types()
+        for srv in srvs:
+            if srv[1][0] == 'nav2_msgs/srv/ManageLifecycleNodes':
+                srv_name = srv[0]
+                self.info('Shutting down ' + srv_name)
+                mgr_client = self.create_client(ManageLifecycleNodes, srv_name)
+                while not mgr_client.wait_for_service(timeout_sec=1.0):
+                    self.info(srv_name + ' service not available, waiting...')
+                req = ManageLifecycleNodes.Request()
+                req.command = ManageLifecycleNodes.Request().SHUTDOWN
+                future = mgr_client.call_async(req)
+                rclpy.spin_until_future_complete(self, future)
+                future.result()
         return
 
     def _waitForNodeToActivate(self, node_name):

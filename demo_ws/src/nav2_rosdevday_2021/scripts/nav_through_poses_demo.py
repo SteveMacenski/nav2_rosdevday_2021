@@ -29,9 +29,6 @@ def main():
 
     navigator = BasicNavigator()
 
-    # If desired, you can change or load the map as well
-    # navigator.changeMap('/path/to/map.yaml')
-
     # Set our demo's initial pose
     initial_pose = PoseStamped()
     initial_pose.header.frame_id = 'map'
@@ -42,11 +39,19 @@ def main():
     initial_pose.pose.orientation.w = 0.0
     navigator.setInitialPose(initial_pose)
 
-    # Wait for navigation to fully activate
+    # Activate navigation, if not autostarted. This should be called after setInitialPose()
+    # or this will initialize at the origin of the map and update the costmap with bogus readings.
+    # If autostart, you should `waitUntilNav2Active()` instead.
+    # navigator.LifecycleStartup()
+
+    # Wait for navigation to fully activate, since autostarting nav2
     navigator.waitUntilNav2Active()
 
-    # Clear costmaps to start fresh, largely unnecessary but a nice API demonstation
-    navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
+    # If desired, you can change or load the map as well
+    # navigator.changeMap('/path/to/map.yaml')
+
+    # You may use the navigator to clear costmaps
+    # navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
 
     # set our demo's goal poses
     goal_poses = []
@@ -77,14 +82,10 @@ def main():
     goal_pose3.pose.orientation.z = 0.707
     goal_poses.append(goal_pose3)
 
-    # sanity check a valid path exists (just for API demonstration)
-    path = navigator.getPathThroughPoses(initial_pose, goal_poses)
-    if path:
-        print('There exists a valid path of length: ' + str(len(path.poses)))
-        navigator.goThroughPoses(goal_poses)
-    else:
-        print('There does not exist any valid path to goals!')
-        exit(-1)
+    # sanity check a valid path exists
+    # path = navigator.getPathThroughPoses(initial_pose, goal_poses)
+
+    navigator.goThroughPoses(goal_poses)
 
     i = 0
     while not navigator.isNavComplete():
@@ -127,6 +128,8 @@ def main():
         print('Goal failed!')
     else:
         print('Goal has an invalid return status!')
+
+    navigator.LifecycleShutdown()
 
     exit(0)
 
