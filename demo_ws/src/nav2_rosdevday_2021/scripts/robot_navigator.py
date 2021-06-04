@@ -20,7 +20,8 @@ from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from lifecycle_msgs.srv import GetState
-from nav2_msgs.action import NavigateThroughPoses, NavigateToPose, FollowWaypoints
+from nav2_msgs.action import NavigateThroughPoses, NavigateToPose, FollowWaypoints, ComputePathToPose, ComputePathThroughPoses
+from nav2_msgs.srv import LoadMap, ClearEntireCostmap
 
 import rclpy
 
@@ -31,9 +32,6 @@ from rclpy.qos import QoSProfile
 
 #TODO
 # - lifecycle up and down
-# - clear costmap
-# - get path
-# - change map
 
 class NavigationResult(Enum):
     UKNNOWN = 0
@@ -62,6 +60,8 @@ class BasicNavigator(Node):
                                                      'navigate_through_poses')
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.follow_waypoints_client = ActionClient(self, FollowWaypoints, 'follow_waypoints')
+        self.compute_path_to_pose_client = ActionClient(self, ComputePathToPose, 'compute_path_to_pose')
+        self.compute_path_through_poses_client = ActionClient(self, ComputePathThroughPoses, 'compute_path_through_poses')
         self.model_pose_sub = self.create_subscription(PoseWithCovarianceStamped,
                                                        'amcl_pose',
                                                        self._amclPoseCallback,
@@ -69,6 +69,11 @@ class BasicNavigator(Node):
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
                                                       'initialpose',
                                                       10)
+        self.change_maps_srv = self.create_client(LoadMap, '/map_server/load_map')
+        self.clear_costmap_global_srv = self.create_client(
+            ClearEntireCostmap, '/global_costmap/clear_entirely_global_costmap')
+        self.clear_costmap_local_srv = self.create_client(
+            ClearEntireCostmap, '/local_costmap/clear_entirely_local_costmap')
 
     def setInitialPose(self, initial_pose):
         self.initial_pose_received = False
@@ -185,6 +190,97 @@ class BasicNavigator(Node):
         self._waitForInitialPose()
         self._waitForNodeToActivate('bt_navigator')
         self.info('Nav2 is ready for use!')
+        return
+
+    def getPath(self, start, goal):
+        # Sends a `NavToPose` action request
+        self.debug("Waiting for 'ComputePathToPose' action server")
+        while not self.compute_path_to_pose_client.wait_for_server(timeout_sec=1.0):
+            self.info("'ComputePathToPose' action server not available, waiting...")
+
+        goal_msg = ComputePathToPose.Goal()
+        goal_msg.goal = goal
+        goal_msg.start = start
+
+        self.info('Getting path...')
+        send_goal_future = self.compute_path_to_pose_client.send_goal_async(goal_msg)
+        rclpy.spin_until_future_complete(self, send_goal_future)
+        self.goal_handle = send_goal_future.result()
+
+        if not self.goal_handle.accepted:
+            self.error('Get path was rejected!')
+            return None
+
+        self.result_future = self.goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self, self.result_future)
+        self.status = self.result_future.result().status
+        if self.status != GoalStatus.STATUS_SUCCEEDED:
+            self.warn('Getting path failed with status code: {0}'.format(self.status))
+            return None
+
+        return self.result_future.result().result.path
+
+    def getPathThroughPoses(self, start, goals):
+        # Sends a `NavToPose` action request
+        self.debug("Waiting for 'ComputePathThroughPoses' action server")
+        while not self.compute_path_through_poses_client.wait_for_server(timeout_sec=1.0):
+            self.info("'ComputePathThroughPoses' action server not available, waiting...")
+
+        goal_msg = ComputePathThroughPoses.Goal()
+        goal_msg.goals = goals
+        goal_msg.start = start
+
+        self.info('Getting path...')
+        send_goal_future = self.compute_path_through_poses_client.send_goal_async(goal_msg)
+        rclpy.spin_until_future_complete(self, send_goal_future)
+        self.goal_handle = send_goal_future.result()
+
+        if not self.goal_handle.accepted:
+            self.error('Get path was rejected!')
+            return None
+
+        self.result_future = self.goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self, self.result_future)
+        self.status = self.result_future.result().status
+        if self.status != GoalStatus.STATUS_SUCCEEDED:
+            self.warn('Getting path failed with status code: {0}'.format(self.status))
+            return None
+
+        return self.result_future.result().result.path
+
+    def changeMap(self, map_filepath):
+        while not self.change_maps_srv.wait_for_service(timeout_sec=1.0):
+            self.info('change map service not available, waiting...')
+        req = LoadMap.Request()
+        req.map_url = map_filepath
+        future = self.change_maps_srv.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        status = future.result().result
+        if status != LoadMap.Response().RESULT_SUCCESS:
+            self.error('Change map request failed!')
+        else:
+            self.info('Change map request was successful!')
+        return
+
+    def clearAllCostmaps(self):
+        self.clearLocalCostmap()
+        self.clearGlobalCostmap()
+        return
+
+    def clearLocalCostmap(self):
+        while not self.clear_costmap_local_srv.wait_for_service(timeout_sec=1.0):
+            self.info('Clear local costmaps service not available, waiting...')
+        req = ClearEntireCostmap.Request()
+        future = self.clear_costmap_local_srv.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return
+
+    def clearGlobalCostmap(self):
+        while not self.clear_costmap_global_srv.wait_for_service(timeout_sec=1.0):
+            self.info('Clear global costmaps service not available, waiting...')
+        req = ClearEntireCostmap.Request()
+        future = self.clear_costmap_global_srv.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
         return
 
     def _waitForNodeToActivate(self, node_name):

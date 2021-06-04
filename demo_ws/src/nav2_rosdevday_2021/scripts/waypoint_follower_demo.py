@@ -29,6 +29,9 @@ def main():
 
     navigator = BasicNavigator()
 
+    # If desired, you can change or load the map as well
+    # navigator.changeMap('/path/to/map.yaml')
+
     # Set our demo's initial pose
     initial_pose = PoseStamped()
     initial_pose.header.frame_id = 'map'
@@ -41,6 +44,9 @@ def main():
 
     # Wait for navigation to fully activate
     navigator.waitUntilNav2Active()
+
+    # Clear costmaps to start fresh, largely unnecessary but a nice API demonstation
+    navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
 
     # set our demo's goal poses to follow
     goal_poses = []
@@ -71,8 +77,16 @@ def main():
     goal_pose3.pose.orientation.z = 0.707
     goal_poses.append(goal_pose3)
 
-    nav_start = navigator.get_clock().now()
-    navigator.followWaypoints(goal_poses)
+    # sanity check a valid path exists (just for API demonstration)
+    path = navigator.getPath(initial_pose, goal_pose1)
+    if path:
+        print('There exists a valid path of length: ' + str(len(path.poses)) +
+              ' to the first waypoint.')
+        nav_start = navigator.get_clock().now()
+        navigator.followWaypoints(goal_poses)
+    else:
+        print('There does not exist any valid path to goal!')
+        exit(-1)
 
     i = 0
     while not navigator.isNavComplete():
