@@ -32,7 +32,7 @@ from rclpy.qos import QoSProfile
 
 
 class NavigationResult(Enum):
-    UKNNOWN = 0
+    UKNOWN = 0
     SUCCEEDED = 1
     CANCELED = 2
     FAILED = 3 
