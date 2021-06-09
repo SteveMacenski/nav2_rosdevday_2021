@@ -18,12 +18,13 @@ This demonstration is overall a reasonable baseline for how to work with Nav2 wi
 To set this up on your own machine, please do the following:
 
 ``` bash
-git clone git@github.com:stevemacenski/nav2_rosdevday_2021.git
 mkdir -p colcon_ws/src
-cd colcon_ws
+cd colcon_ws/src
 
-vcs import src < ../deps.repos
-vcs pull src
+git clone git@github.com:stevemacenski/nav2_rosdevday_2021.git
+
+vcs import . < nav2_rosdevday_2021/deps.repos
+cd ../
 
 source /opt/ros/galactic/setup.bash
 colcon build
