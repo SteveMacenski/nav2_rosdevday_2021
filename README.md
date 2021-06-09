@@ -50,3 +50,5 @@ With demos being:
 - `waypoint_follower_demo.py`
 
 The first 3 are example demo applications using Nav2 tools. The final 3 are full examples of using the `robot_navigator.py` file for python3-based Nav2-as-a-library. Each are well commented and self explanatory.
+
+![](media/readme.gif)
