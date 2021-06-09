@@ -18,14 +18,21 @@ This demonstration is overall a reasonable baseline for how to work with Nav2 wi
 To set this up on your own machine, please do the following:
 
 ``` bash
+# Create a workspace
 mkdir -p colcon_ws/src
 cd colcon_ws/src
 
+# Get the demo code
 git clone git@github.com:stevemacenski/nav2_rosdevday_2021.git
 
+# Get the dependencies not shipped with Galactic at June 8, 2021.
 vcs import . < nav2_rosdevday_2021/deps.repos
 cd ../
 
+# Install dependencies which are shipped with Galactic at June 8, 2021.
+rosdep install --from-path src --ignore-src -r -y
+
+# Build the workspace
 source /opt/ros/galactic/setup.bash
 colcon build
 ```
@@ -39,7 +46,7 @@ source colcon_ws/install/setup.bash
 ros2 launch nav2_rosdevday_2021 system_launch.py # launches simulation, rviz, nav2
 
 source colcon_ws/install/setup.bash
-python3 colcon_ws/src/nav2_rosdevday_2021/scripts/{pick a demo}.py # launches autonomy or API demo
+python3 colcon_ws/src/nav2_rosdevday_2021/nav2_rosdevday_2021/scripts/{pick a demo}.py # launches autonomy or API demo
 ```
 
 With demos being:
