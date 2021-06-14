@@ -1,11 +1,7 @@
 repositories:
-  ROBOTIS-GIT/turtlebot3_simulations:
+  neobotix/neo_simulation2:
     type: git
-    url: https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
-    version: foxy-devel
-  ROBOTIS-GIT/turtlebot3_msgs:
-    type: git
-    url: https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git
+    url: https://github.com/neobotix/neo_simulation2.git
     version: foxy-devel
   aws-robotics/aws-robomaker-small-warehouse-world:
     type: git

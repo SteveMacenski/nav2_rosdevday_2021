@@ -9,7 +9,7 @@ This contains:
 - Demo for Keepout Zones and Speed Restricted Zones
 - Demo code for working with Nav2 in python3 simple autonomy application
 
-This demonstration is overall a reasonable baseline for how to work with Nav2 with a non-default setup (e.g. non-Turtlebot3 in a non-sandbox world) for first-time users.
+This demonstration is overall a reasonable baseline for how to work with Nav2 with a non-default setup (e.g. non-Turtlebot3 robot in a non-sandbox world) for first-time users.
 
 ![](media/pose_set.png)
 

@@ -28,11 +28,12 @@ def generate_launch_description():
     # Get the launch directory
     nav2_bringup_dir = get_package_share_directory('nav2_bringup')
     bringup_dir = get_package_share_directory('nav2_rosdevday_2021')
+    robot_model_dir = get_package_share_directory('neo_simulation2')
+    warehouse_dir = get_package_share_directory('aws_robomaker_small_warehouse_world')
+
     nav2_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
     launch_dir = os.path.join(bringup_dir, 'launch')
-    urdf = os.path.join(nav2_bringup_dir, 'urdf', 'turtlebot3_waffle.urdf')
     rviz_config_file = os.path.join(nav2_bringup_dir, 'rviz', 'nav2_default_view.rviz')
-    warehouse_dir = get_package_share_directory('aws_robomaker_small_warehouse_world')
 
     # Create the launch configuration variables
     slam = LaunchConfiguration('slam')
@@ -45,6 +46,7 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration('use_rviz')
     headless = LaunchConfiguration('headless')
     world = LaunchConfiguration('world')
+    urdf = LaunchConfiguration('urdf')
 
     # Declare the launch arguments
     declare_slam_cmd = DeclareLaunchArgument(
@@ -89,10 +91,16 @@ def generate_launch_description():
             bringup_dir, 'worlds', 'industrial_sim.world'),
         description='Full path to world model file to load')
 
+    declare_urdf_cmd = DeclareLaunchArgument(
+        'urdf',
+        default_value=os.path.join(
+            robot_model_dir, 'robots', 'mp_400', 'mp_400.urdf'),
+        description='Full path to world model file to load')
+
     # Specify the actions
     start_gazebo_server_cmd = ExecuteProcess(
         condition=IfCondition(use_simulator),
-        cmd=['gzserver', '-s', 'libgazebo_ros_init.so', world],
+        cmd=['gzserver', '-s', 'libgazebo_ros_factory.so', world],
         cwd=[warehouse_dir], output='screen')
 
     start_gazebo_client_cmd = ExecuteProcess(
@@ -100,6 +108,17 @@ def generate_launch_description():
             [use_simulator, ' and not ', headless])),
         cmd=['gzclient'],
         cwd=[warehouse_dir], output='screen')
+
+    spawn_entity_cmd = Node(
+        package='gazebo_ros',
+        executable='spawn_entity.py',
+        arguments=['-entity', 'robot',
+                   '-file', urdf,
+                   '-x', '3.45',
+                   '-y', '2.15',
+                   '-z', '0.10',
+                   '-Y', '3.14'],
+        output='screen')
 
     start_robot_state_publisher_cmd = Node(
         package='robot_state_publisher',
@@ -166,8 +185,10 @@ def generate_launch_description():
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_simulator_cmd)
     ld.add_action(declare_world_cmd)
+    ld.add_action(declare_urdf_cmd)
     ld.add_action(start_gazebo_server_cmd)
     ld.add_action(start_gazebo_client_cmd)
+    ld.add_action(spawn_entity_cmd)
     ld.add_action(start_robot_state_publisher_cmd)
     ld.add_action(rviz_cmd)
     ld.add_action(bringup_cmd)
