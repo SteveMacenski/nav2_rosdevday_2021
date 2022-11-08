@@ -28,7 +28,7 @@ def generate_launch_description():
     # Get the launch directory
     nav2_bringup_dir = get_package_share_directory('nav2_bringup')
     bringup_dir = get_package_share_directory('nav2_rosdevday_2021')
-    robot_model_dir = get_package_share_directory('neo_simulation2')
+    robot_model_dir = get_package_share_directory('neo_simulation2') #neo_simulation2 is throwing a lookup error that package is not found
     warehouse_dir = get_package_share_directory('aws_robomaker_small_warehouse_world')
 
     nav2_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
